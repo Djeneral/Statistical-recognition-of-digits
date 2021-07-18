@@ -75,27 +75,48 @@ for i in range(0, len(x_test)):
 acc = 0
 correct_class = []
 detect_class = []
-for i in range(0, number_of_classes):
-    index = t_test == i
-    data = x_test_features[index]
-    data = np.matmul(data, transformationMatrix)
-    answer = np.zeros(len(data))
-    for j in range(0, len(data)):
-        correct_class.append(i)
-        q = np.zeros(number_of_classes)
-        for k in range(0, number_of_classes):
-            point = data[j]
-            q[k] = p[i]*1/((2 * np.pi)**(number_of_dimension / 2) * (det(covMat[:, :, k])) ** 0.5)*np.exp(-0.5 * np.matmul(np.matmul(point - m[:, k], inv(covMat[:, :, k])), np.transpose(point - m[:, k])))
 
-        answer[j] = np.argmax(q)
-        detect_class.append(answer[j])
+for i in range(0, len(x_test_features)):
+    data = x_test_features[i]
+    data = np.matmul(data, transformationMatrix)
+    correct_class.append(t_test[i])
+    q = np.zeros(number_of_classes)
+    for k in range(0, number_of_classes):
+        q[k] = p[k] * 1 / ((2 * np.pi) ** (number_of_dimension / 2) * (det(covMat[:, :, k])) ** 0.5) * np.exp(
+            -0.5 * np.matmul(
+                np.matmul(data - m[:, k], inv(covMat[:, :, k])), np.transpose(data - m[:, k])))
+    answer = np.argmax(q)
+    detect_class.append(answer)
 
 conf = confusion_matrix(correct_class, detect_class)
 
 acc = np.sum(np.diag(conf)) / np.sum(conf) * 100
 print('Accuracy: ' + repr(np.round(acc, 2)) + '%')
 
-sns.heatmap(conf/np.sum(conf, axis=1), annot=True, fmt='.2%', cmap='Blues')
+sns.heatmap(conf / np.sum(conf, axis=1), annot=True, fmt='.2%', cmap='Blues')
 plt.xlabel('Predicted class')
 plt.ylabel('Correct class')
+plt.show()
+
+images_per_row_col = 25
+
+image = np.zeros([images_per_row_col * image_dimension, images_per_row_col * image_dimension])
+output = np.zeros([images_per_row_col, images_per_row_col])
+for i in range(0, len(x_test)):
+    img = np.reshape(x_test[i], [image_dimension, image_dimension])
+    indexX = int((i % images_per_row_col ** 2) / images_per_row_col)
+    indexY = i % images_per_row_col ** 2 - indexX * images_per_row_col
+    image[indexX * image_dimension: (indexX + 1) * image_dimension, indexY * image_dimension: (indexY + 1) *
+                                                                                              image_dimension] = img
+    if i % images_per_row_col ** 2 == 0 and i > 0:
+        out = detect_class[i - images_per_row_col ** 2: i]
+        output = np.reshape(out, [images_per_row_col, images_per_row_col])
+        plt.figure(int(i / images_per_row_col ** 2))
+        plt.subplot(1, 2, 1)
+        plt.imshow(image)
+        plt.subplot(1, 2, 2)
+        sns.heatmap(output, annot=True, fmt="d", cmap='Blues')
+        image = np.zeros([images_per_row_col * image_dimension, images_per_row_col * image_dimension])
+        output = np.zeros([images_per_row_col, images_per_row_col])
+
 plt.show()
